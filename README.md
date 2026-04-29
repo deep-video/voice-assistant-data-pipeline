@@ -359,8 +359,12 @@ second_domain/
 
 ---
 
-## 联系与反馈
+## 📄 许可证
+
+本项目采用 Apache-2.0 许可证。详见 [LICENSE](LICENSE) 文件。
+
+---
+
+## 📬 联系
 
 如有问题或建议，请提交 Issue 或联系作者。
-
-**License**: MIT
