@@ -1,0 +1,14 @@
+[
+  {
+    "intent": "travel_planning",
+    "reason": "旅行规划常包含POI推荐（如'推荐几个北京值得去的景点'），用户表面诉求是规划行程，但核心动因可能是获取POI建议；与poi_recommendation存在动作重叠（系统需输出POI列表），且边界模糊——当用户未明确提及行程安排、仅说'推荐些古镇'时，本质是POI推荐而非完整旅行规划。"
+  },
+  {
+    "intent": "transport_query",
+    "reason": "部分transport_query（如'去西湖怎么坐车'）需先识别目标POI，但该意图聚焦交通方式而非POI本身；然而当用户表达为'附近有哪些地铁站可换乘'或'推荐几个方便去机场的酒店'时，隐含对POI（地铁站/酒店）的推荐需求，易与poi_recommendation混淆——关键区别在于：transport_query以路径/方式为核心，而poi_recommendation以POI实体为核心，但用户表述常省略动词或混用（如'去哪玩方便'实为POI推荐）。"
+  },
+  {
+    "intent": "media_recommendation",
+    "reason": "虽对象为媒体内容，但'推荐'这一动作模式高度相似（系统生成列表），且用户可能使用泛化表达如'推荐点好玩的'，未限定领域；若上下文缺失或ASR错误（如'推荐个POI'误识为'推荐个播'），易与media_recommendation混淆；二者共享'推荐+名词'句式结构，需依赖实体类型判断，边界依赖语义消歧。"
+  }
+]

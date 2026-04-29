@@ -1,0 +1,10 @@
+[
+  {
+    "intent": "music_recommendation",
+    "reason": "用户可能说‘我之前听过什么歌’或‘推荐我以前喜欢的类型’，表面涉及历史偏好，但核心意图是获取新推荐而非查看/浏览历史记录本身；history_query强调对历史数据的直接检索（如‘显示我的播放历史’），而music_recommendation是基于历史的推断性生成行为，动作本质不同。"
+  },
+  {
+    "intent": "media_recommendation",
+    "reason": "与music_recommendation类似，可能触发‘根据我最近看的剧推荐’等表述，易与‘查我最近看了哪些剧’混淆；前者是预测性推荐动作，后者才是history_query；二者共享‘最近/以往’时间线索，但语义焦点（推荐 vs 展示）和系统动作（生成内容 vs 列出记录）截然不同。"
+  }
+]

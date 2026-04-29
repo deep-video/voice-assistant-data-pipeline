@@ -1,0 +1,18 @@
+[
+  {
+    "intent": "media_recommendation",
+    "reason": "用户可能说'打开音乐'或'播放广播'，表面类似媒体控制，但若语境明确为车载系统执行（如'把收音机音量调大'），属于car_control；而'media_recommendation'仅涉及推荐内容（如'推荐一首轻松的歌'），不触发设备控制。二者在语音指令表层结构相似（动词+媒体名词），易因缺乏动作意图识别而混淆。"
+  },
+  {
+    "intent": "weather_query",
+    "reason": "用户可能说'打开空调，调到26度'（car_control）与'今天天气怎么样'（weather_query）共现于同一场景，且部分车载系统支持'根据天气自动调节空调'，导致模型将条件型控制语句（如'天热了，把空调打开'）错误归类为weather_query而非car_control。"
+  },
+  {
+    "intent": "traffic_query",
+    "reason": "存在场景耦合：用户说'前面堵车，把座椅按摩关掉'——前半句像traffic_query，后半句是car_control；若模型过度依赖首句关键词或未识别主谓宾中的控制动词（'关掉'），可能忽略真实意图。此外，'调整导航路线'属transport_query，但'调高导航音量'属car_control，二者共享'导航'上下文，易因实体重叠误判。"
+  },
+  {
+    "intent": "history_query",
+    "reason": "用户可能说'上次空调设的是多少度'——表面查询历史状态，但隐含对空调功能的关注；若系统无法区分'查询状态'（history_query）与'执行控制'（car_control），可能将'把空调恢复成上次的温度'这类带控制动词的指令误判为history_query，因二者共享'上次/历史'等时间指示词。"
+  }
+]

@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 模型文件（太大）
+qwen3-*/
+*.safetensors
+*.bin
+*.pt
+*.pth
+
+# 生成的数据文件（可选，根据需求决定）
+src/core/seed_pools/
+src/core/expanded_data/
+src/core/boundary_samples/
+src/core/quality_evaluation/
+src/core/final_dataset/
+
+# 配置文件（包含敏感信息）
+src/config/api_config.py
+
+# 日志
+*.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
