@@ -24,7 +24,8 @@ from src.config.intent_descriptions import INTENT_DESCRIPTIONS, ALL_INTENTS
 from src.core.seed_generator import SeedGenerator
 from src.core.seed_expander import SeedExpander
 from src.core.generate_boundary_samples import generate_all_boundary_samples, load_confusing_intents
-from src.evaluation.evaluate_data_quality_api import evaluate_data as evaluate_data_quality
+# 使用本地模型版本的质量评估（而非 API 版本）
+from src.evaluation.evaluate_data_quality import evaluate_data as evaluate_data_quality
 
 
 class PipelineConfig:
