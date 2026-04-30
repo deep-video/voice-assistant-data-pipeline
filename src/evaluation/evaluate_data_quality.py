@@ -1,28 +1,26 @@
 import json
 import sys
+import os
 import torch
 from tqdm import tqdm
 from modelscope import AutoModelForCausalLM, AutoTokenizer
-import sys
-import io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-# 加载意图描述
-sys.path.append("d:\\second_domain\\src")
-from config.intent_descriptions import INTENT_DESCRIPTIONS
+# 添加项目根目录到路径
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, PROJECT_ROOT)
+
+from src.config.intent_descriptions import INTENT_DESCRIPTIONS
 
 # 加载模型
 model_path = "d:\\second_domain\\qwen3-4b"
+print(f"正在加载模型：{model_path}...")
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForCausalLM.from_pretrained(
     model_path,
     torch_dtype="auto",
     device_map="auto"
 )
-
-# 加载数据
-with open("d:\\second_domain\\llm_seed_pipeline\\expanded_data\\music_recommendation_expanded.json", "r", encoding="utf-8") as f:
-    data = json.load(f)
+print("模型加载完成\n")
 
 # 评估提示词
 EVAL_PROMPT = """你是数据质量评估员，需要判断语音助手训练数据是否保留。
@@ -42,8 +40,6 @@ EVAL_PROMPT = """你是数据质量评估员，需要判断语音助手训练数
 {{"keep": true/false, "reason": "简短理由"}}
 """
 
-keep_data = []
-discard_data = []
 
 def evaluate_item(item):
     """评估单条数据"""
@@ -99,6 +95,7 @@ def evaluate_item(item):
     
     return keep, reason
 
+
 def evaluate_data(data: list):
     """
     评估数据质量（本地模型版本）
@@ -124,16 +121,26 @@ def evaluate_data(data: list):
             discard_data.append(item)
             print(f"[{i}/{len(data)}] ❌ 丢弃：{item['user_input']} | {reason}")
     
+    print(f"\n评估完成！")
+    print(f"保留：{len(keep_data)} 条")
+    print(f"丢弃：{len(discard_data)} 条")
+    print(f"保留率：{len(keep_data)/len(data)*100:.1f}%")
+    
     return keep_data, discard_data
 
-# 保存结果
-with open("d:\\second_domain\\llm_seed_pipeline\\quality_evaluation\\keep.json", "w", encoding="utf-8") as f:
-    json.dump(keep_data, f, ensure_ascii=False, indent=2)
 
-with open("d:\\second_domain\\llm_seed_pipeline\\quality_evaluation\\discard.json", "w", encoding="utf-8") as f:
-    json.dump(discard_data, f, ensure_ascii=False, indent=2)
-
-print(f"\n评估完成！")
-print(f"保留：{len(keep_data)} 条")
-print(f"丢弃：{len(discard_data)} 条")
-print(f"保留率：{len(keep_data)/len(data)*100:.1f}%")
+if __name__ == "__main__":
+    # 示例用法：直接运行此脚本测试
+    test_data = [
+        {"user_input": "推荐几首好听的歌", "intent": "music_recommendation"},
+        {"user_input": "播放音乐", "intent": "music_recommendation"},
+    ]
+    
+    keep, discard = evaluate_data(test_data)
+    
+    # 保存测试结果
+    with open("d:\\second_domain\\src\\core\\quality_evaluation\\test_keep.json", "w", encoding="utf-8") as f:
+        json.dump(keep, f, ensure_ascii=False, indent=2)
+    
+    with open("d:\\second_domain\\src\\core\\quality_evaluation\\test_discard.json", "w", encoding="utf-8") as f:
+        json.dump(discard, f, ensure_ascii=False, indent=2)
