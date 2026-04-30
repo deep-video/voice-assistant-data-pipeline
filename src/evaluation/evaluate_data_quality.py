@@ -6,6 +6,11 @@ from modelscope import AutoModelForCausalLM, AutoTokenizer
 import sys
 import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+# 加载意图描述
+sys.path.append("d:\\second_domain\\src")
+from config.intent_descriptions import INTENT_DESCRIPTIONS
+
 # 加载模型
 model_path = "d:\\second_domain\\qwen3-4b"
 tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -23,6 +28,7 @@ with open("d:\\second_domain\\llm_seed_pipeline\\expanded_data\\music_recommenda
 EVAL_PROMPT = """你是数据质量评估员，需要判断语音助手训练数据是否保留。
 
 **意图**：{intent}
+**意图描述**：{intent_description}
 **输入**：{user_input}
 
 **评估标准**：
@@ -30,22 +36,26 @@ EVAL_PROMPT = """你是数据质量评估员，需要判断语音助手训练数
    - 例如音乐推荐意图："听"、"歌"、"音乐"、"曲"、"旋律"、"首"等
    - 仅有动作词（如"推荐"、"播放"）不足以判断，必须包含领域相关词
 2. 表达自然，像真人对语音助手说话
-3. 长度5-20字
+3. 长度 5-20 字
 
-**输出格式**（只输出JSON）：
+**输出格式**（只输出 JSON）：
 {{"keep": true/false, "reason": "简短理由"}}
 """
 
 keep_data = []
 discard_data = []
 
-print(f"开始评估 {len(data)} 条数据...\n")
-
-for i, item in enumerate(tqdm(data, desc="评估进度"), 1):
+def evaluate_item(item):
+    """评估单条数据"""
     user_input = item["user_input"]
     intent = item["intent"]
+    intent_description = INTENT_DESCRIPTIONS.get(intent, "无描述")
     
-    prompt = EVAL_PROMPT.format(intent=intent, user_input=user_input)
+    prompt = EVAL_PROMPT.format(
+        intent=intent,
+        intent_description=intent_description,
+        user_input=user_input
+    )
     messages = [{"role": "user", "content": prompt}]
     
     text = tokenizer.apply_chat_template(
@@ -84,16 +94,37 @@ for i, item in enumerate(tqdm(data, desc="评估进度"), 1):
         keep = False
         reason = "解析失败"
     
-    # 分类
     item["eval_keep"] = keep
     item["eval_reason"] = reason
     
-    if keep:
-        keep_data.append(item)
-        print(f"[{i}/{len(data)}] ✅ 保留: {user_input} | {reason}")
-    else:
-        discard_data.append(item)
-        print(f"[{i}/{len(data)}] ❌ 丢弃: {user_input} | {reason}")
+    return keep, reason
+
+def evaluate_data(data: list):
+    """
+    评估数据质量（本地模型版本）
+    
+    参数：
+    - data: 待评估的数据列表
+    
+    返回：
+    - (keep_data, discard_data): 保留和丢弃的数据列表
+    """
+    keep_data = []
+    discard_data = []
+    
+    print(f"开始评估 {len(data)} 条数据...\n")
+    
+    for i, item in enumerate(tqdm(data, desc="评估进度"), 1):
+        keep, reason = evaluate_item(item)
+        
+        if keep:
+            keep_data.append(item)
+            print(f"[{i}/{len(data)}] ✅ 保留：{item['user_input']} | {reason}")
+        else:
+            discard_data.append(item)
+            print(f"[{i}/{len(data)}] ❌ 丢弃：{item['user_input']} | {reason}")
+    
+    return keep_data, discard_data
 
 # 保存结果
 with open("d:\\second_domain\\llm_seed_pipeline\\quality_evaluation\\keep.json", "w", encoding="utf-8") as f:
