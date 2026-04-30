@@ -529,6 +529,6 @@ second_domain/
 
 ## 联系与反馈
 
-如有问题或建议，请提交 Issue 或联系作者邮箱（1039792337@qq.com）。
+如有问题或建议，请提交 Issue。
 
 **License**: Apache-2.0 license
