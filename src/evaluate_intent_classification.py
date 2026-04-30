@@ -48,7 +48,6 @@ INTENT_DESCRIPTIONS = {
     "music_recommendation": "用户想要系统推荐/建议音乐，包含询问听什么、推荐几首、旋律、歌、音乐等表达",
     "car_control": "用户想要控制车辆功能，如空调、车窗、座椅、灯光等",
     "phone_call": "用户想要拨打电话",
-    "navigation": "用户想要设置导航或查询路线",
     "travel_planning": "用户想要系统规划旅行路线或行程",
     "history_query": "用户想要查询历史记录，如播放历史、搜索历史",
     "weather_query": "用户想要查询天气信息",
@@ -68,94 +67,107 @@ with open(data_file, "r", encoding="utf-8") as f:
 
 print(f"数据总量：{len(data)} 条\n")
 
-# 先划分数据集
+# 数据集划分
 print("="*70)
 print("数据集划分")
 print("="*70)
 
-# 按意图分组
-intent_groups = {}
-boundary_samples = []
-
-for item in data:
-    intent = item["intent"]
-    
-    # 检查是否是边界样本
-    is_boundary = item.get("boundary_with", None) is not None
-    
-    if is_boundary:
-        if intent not in intent_groups:
-            intent_groups[intent] = []
-        boundary_samples.append(item)
-    else:
-        if intent not in intent_groups:
-            intent_groups[intent] = []
-        intent_groups[intent].append(item)
-
-print(f"\n普通样本分布:")
-for intent, items in sorted(intent_groups.items()):
-    print(f"  {intent}: {len(items)} 条")
-
-print(f"\n边界样本：{len(boundary_samples)} 条")
-
-# 对每个意图的普通样本进行 8:2 划分
-train_data = []
-test_data = []
-
-for intent, items in intent_groups.items():
-    if len(items) < 2:
-        train_data.extend(items)
-        continue
-    
-    train_items, test_items = train_test_split(
-        items,
-        test_size=0.2,
-        random_state=42
-    )
-    
-    train_data.extend(train_items)
-    test_data.extend(test_items)
-
-# 边界样本也按 8:2 划分
-if boundary_samples:
-    boundary_groups = {}
-    for item in boundary_samples:
-        boundary_with = item["boundary_with"]
-        if boundary_with not in boundary_groups:
-            boundary_groups[boundary_with] = []
-        boundary_groups[boundary_with].append(item)
-    
-    print(f"\n边界样本按混淆意图分布:")
-    for boundary_intent, items in sorted(boundary_groups.items()):
-        print(f"  {boundary_intent}: {len(items)} 条")
-        
-        if len(items) < 2:
-            train_data.extend(items)
-        else:
-            train_items, test_items = train_test_split(
-                items,
-                test_size=0.2,
-                random_state=42
-            )
-            train_data.extend(train_items)
-            test_data.extend(test_items)
-
-print(f"\n数据集划分结果:")
-print(f"  训练集：{len(train_data)} 条 ({len(train_data)/len(data)*100:.1f}%)")
-print(f"  测试集：{len(test_data)} 条 ({len(test_data)/len(data)*100:.1f}%)")
-
-# 保存划分结果
 train_file = "d:\\second_domain\\src\\core\\final_dataset\\train_set.json"
 test_file = "d:\\second_domain\\src\\core\\final_dataset\\test_set.json"
 
-with open(train_file, "w", encoding="utf-8") as f:
-    json.dump(train_data, f, ensure_ascii=False, indent=2)
-
-with open(test_file, "w", encoding="utf-8") as f:
-    json.dump(test_data, f, ensure_ascii=False, indent=2)
-
-print(f"\n训练集保存到：{train_file}")
-print(f"测试集保存到：{test_file}")
+# 检查是否已经划分过
+import os
+if os.path.exists(train_file) and os.path.exists(test_file):
+    print(f"\n检测到已划分的数据集，直接加载...")
+    with open(train_file, "r", encoding="utf-8") as f:
+        train_data = json.load(f)
+    with open(test_file, "r", encoding="utf-8") as f:
+        test_data = json.load(f)
+    print(f"  训练集：{len(train_data)} 条 ({len(train_data)/len(data)*100:.1f}%)")
+    print(f"  测试集：{len(test_data)} 条 ({len(test_data)/len(data)*100:.1f}%)")
+else:
+    print(f"\n未检测到已划分的数据集，开始划分...")
+    
+    # 按意图分组
+    intent_groups = {}
+    boundary_samples = []
+    
+    for item in data:
+        intent = item["intent"]
+        
+        # 检查是否是边界样本
+        is_boundary = item.get("boundary_with", None) is not None
+        
+        if is_boundary:
+            if intent not in intent_groups:
+                intent_groups[intent] = []
+            boundary_samples.append(item)
+        else:
+            if intent not in intent_groups:
+                intent_groups[intent] = []
+            intent_groups[intent].append(item)
+    
+    print(f"\n普通样本分布:")
+    for intent, items in sorted(intent_groups.items()):
+        print(f"  {intent}: {len(items)} 条")
+    
+    print(f"\n边界样本：{len(boundary_samples)} 条")
+    
+    # 对每个意图的普通样本进行 8:2 划分
+    train_data = []
+    test_data = []
+    
+    for intent, items in intent_groups.items():
+        if len(items) < 2:
+            train_data.extend(items)
+            continue
+        
+        train_items, test_items = train_test_split(
+            items,
+            test_size=0.2,
+            random_state=42
+        )
+        
+        train_data.extend(train_items)
+        test_data.extend(test_items)
+    
+    # 边界样本也按 8:2 划分
+    if boundary_samples:
+        boundary_groups = {}
+        for item in boundary_samples:
+            boundary_with = item["boundary_with"]
+            if boundary_with not in boundary_groups:
+                boundary_groups[boundary_with] = []
+            boundary_groups[boundary_with].append(item)
+        
+        print(f"\n边界样本按混淆意图分布:")
+        for boundary_intent, items in sorted(boundary_groups.items()):
+            print(f"  {boundary_intent}: {len(items)} 条")
+            
+            if len(items) < 2:
+                train_data.extend(items)
+            else:
+                train_items, test_items = train_test_split(
+                    items,
+                    test_size=0.2,
+                    random_state=42
+                )
+                train_data.extend(train_items)
+                test_data.extend(test_items)
+    
+    print(f"\n数据集划分结果:")
+    print(f"  训练集：{len(train_data)} 条 ({len(train_data)/len(data)*100:.1f}%)")
+    print(f"  测试集：{len(test_data)} 条 ({len(test_data)/len(data)*100:.1f}%)")
+    
+    # 保存划分结果
+    with open(train_file, "w", encoding="utf-8") as f:
+        json.dump(train_data, f, ensure_ascii=False, indent=2)
+    
+    with open(test_file, "w", encoding="utf-8") as f:
+        json.dump(test_data, f, ensure_ascii=False, indent=2)
+    
+    print(f"\n训练集保存到：{train_file}")
+    print(f"测试集保存到：{test_file}")
 
 # 仅对测试集进行评估
 print("\n" + "="*70)
@@ -274,8 +286,13 @@ for intent in ALL_INTENTS:
     f1 = f1_score(y_true_binary, y_pred_binary, zero_division=0)
     
     # 计算 FPR (False Positive Rate)
-    tn, fp, fn, tp = confusion_matrix(y_true_binary, y_pred_binary).ravel()
-    fpr = fp / (fp + tn) if (fp + tn) > 0 else 0
+    cm = confusion_matrix(y_true_binary, y_pred_binary, labels=[0, 1])
+    if cm.shape == (2, 2):
+        tn, fp, fn, tp = cm.ravel()
+        fpr = fp / (fp + tn) if (fp + tn) > 0 else 0
+    else:
+        # 如果混淆矩阵不是 2x2，说明只有一个类别
+        fpr = 0
     
     intent_metrics[intent] = {
         "precision": precision,
@@ -353,3 +370,25 @@ with open(metrics_file, "w", encoding="utf-8") as f:
     f.write(f"总体准确率：      {total_accuracy:.4f}\n")
 
 print(f"\n指标保存到：{metrics_file}")
+
+# 按意图分别保存预测错误的样本
+error_by_intent = {}
+for item in pred_results:
+    if not item["correct"]:
+        true_intent = item["true_intent"]
+        if true_intent not in error_by_intent:
+            error_by_intent[true_intent] = []
+        error_by_intent[true_intent].append(item)
+
+print(f"\n预测错误样本总数：{sum(len(errors) for errors in error_by_intent.values())} 条")
+print(f"错误样本按意图分别保存:")
+
+error_dir = "d:\\second_domain\\src\\core\\final_dataset\\errors"
+import os
+os.makedirs(error_dir, exist_ok=True)
+
+for intent, errors in sorted(error_by_intent.items()):
+    error_file = os.path.join(error_dir, f"{intent}_errors.json")
+    with open(error_file, "w", encoding="utf-8") as f:
+        json.dump(errors, f, ensure_ascii=False, indent=2)
+    print(f"  {intent}: {len(errors)} 条错误 -> {error_file}")
