@@ -1,5 +1,5 @@
 """
-数据质量评估模块 - API版本（支持并发）
+数据质量评估模块 - API 版本（支持并发）
 """
 
 import json
@@ -15,6 +15,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, PROJECT_ROOT)
 
 from src.config.api_config import QWEN_API_KEY, QWEN_API_URL, QWEN_MODEL_NAME
+from src.config.intent_descriptions import INTENT_DESCRIPTIONS
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
@@ -25,35 +26,34 @@ client = OpenAI(
 )
 
 # 评估提示词
-EVAL_PROMPT = """你是数据质量评估员，需要为语音助手训练数据打分（0-5分）。
-
-**评估标准**：
-1. 意图可推断：能大致推断是{intent}意图（允许口语化导致的模糊）
-2. 真实自然：像真人对语音助手说话，口语化
-3. 长度合适：5-20字
-4. **允许**：省略句、碎片句、结巴、语气词等口语噪声
+EVAL_PROMPT = """你是数据质量评估员，需要判断语音助手训练数据是否保留。
 
 **意图**：{intent}
+**意图描述**：{intent_description}
 **输入**：{user_input}
 
-**打分标准**：
-- 5分：意图明确，表达自然，完全符合
-- 4分：意图可推断，表达较自然，基本符合
-- 3分：意图可大致推断，有一定口语化特征
-- 2分：意图模糊，表达不自然
-- 1分：意图不明确，难以判断
-- 0分：完全不符合要求
+**评估标准**：
+1. 必须包含与意图相关的隐含词（能让人联想到该意图的关键词）
+   - 例如音乐推荐意图："听"、"歌"、"音乐"、"曲"、"旋律"、"首"等
+   - 仅有动作词（如"推荐"、"播放"）不足以判断，必须包含领域相关词
+2. 表达自然，像真人对语音助手说话
+3. 长度 5-20 字
 
-**输出格式**（只输出JSON）：
-{{"score": 0-5, "reason": "简短理由"}}
+**输出格式**（只输出 JSON）：
+{{"keep": true/false, "reason": "简短理由"}}
 """
 
 def evaluate_item(item, idx):
     """评估单条数据"""
     user_input = item["user_input"]
     intent = item["intent"]
+    intent_description = INTENT_DESCRIPTIONS.get(intent, "无描述")
     
-    prompt = EVAL_PROMPT.format(intent=intent, user_input=user_input)
+    prompt = EVAL_PROMPT.format(
+        intent=intent,
+        intent_description=intent_description,
+        user_input=user_input
+    )
     
     try:
         response = client.chat.completions.create(
@@ -70,28 +70,27 @@ def evaluate_item(item, idx):
         end = content.rfind("}") + 1
         if start != -1 and end != 0:
             result = json.loads(content[start:end])
-            score = result.get("score", 0)
+            keep = result.get("keep", False)
             reason = result.get("reason", "")
         else:
-            score = 0
+            keep = False
             reason = "解析失败"
     except Exception as e:
-        score = 0
-        reason = f"错误: {str(e)}"
+        keep = False
+        reason = f"错误：{str(e)}"
     
-    item["eval_score"] = score
+    item["eval_keep"] = keep
     item["eval_reason"] = reason
     
-    return idx, item, score, reason
+    return idx, item, keep, reason
 
-def evaluate_data(data: list, max_workers: int = 8, score_threshold: int = 3):
+def evaluate_data(data: list, max_workers: int = 8):
     """
     评估数据质量
     
     参数：
     - data: 待评估的数据列表
     - max_workers: 并发线程数
-    - score_threshold: 保留分数阈值（>=该分数保留）
     
     返回：
     - (keep_data, discard_data): 保留和丢弃的数据列表
@@ -108,10 +107,10 @@ def evaluate_data(data: list, max_workers: int = 8, score_threshold: int = 3):
             futures.append(executor.submit(evaluate_item, item, idx))
         
         for future in tqdm(as_completed(futures), total=len(futures), desc="评估进度"):
-            idx, item, score, reason = future.result()
+            idx, item, keep, reason = future.result()
             results[idx] = item
             
-            if score >= score_threshold:
+            if keep:
                 keep_data.append(item)
             else:
                 discard_data.append(item)
